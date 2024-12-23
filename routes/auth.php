@@ -69,6 +69,21 @@ Route::middleware('auth')->group(function () {
     [AuthenticatedSessionController::class, 'destroy']
   )->name('logout');
 
+  Route::resource(
+    'bid-documents',
+    \App\Http\Controllers\Bid\BidDocumentController::class
+  );
+
+  Route::post(
+    '/bid-documents/{tenderDocument}/generate',
+    [\App\Http\Controllers\Bid\BidDocumentController::class, 'generateBid']
+  )->name('bids.generate');
+
+  Route::post(
+    '/tender-documents/{tenderDocument}/generate-bid',
+    [\App\Http\Controllers\Tender\TenderController::class, 'generateBid']
+  )->middleware(['auth', 'permission:create bid']);
+
   Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
   Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
   Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');

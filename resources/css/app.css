@@ -68,6 +68,12 @@
   }
 }
 
+@layer components {
+  .btn {
+    @apply dark:text-muted-foreground bg-muted-foreground dark:bg-muted text-muted
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

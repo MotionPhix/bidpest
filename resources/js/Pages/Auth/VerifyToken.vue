@@ -6,6 +6,10 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import {Head, Link, useForm} from '@inertiajs/vue3';
 
+defineProps({
+  status: String
+})
+
 const form = useForm({
   token: '',
   email: '',
@@ -28,6 +32,10 @@ function verifyToken() {
   <GuestLayout>
     <Head title="Register"/>
 
+    <div v-if="status" class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+      {{ status }}
+    </div>
+
     <form @submit.prevent="verifyToken">
       <div class="mt-4">
         <InputLabel for="email" value="Email"/>
@@ -35,6 +43,7 @@ function verifyToken() {
         <TextInput
           id="email"
           type="email"
+          placeholder="Enter your email address"
           class="mt-1 block w-full"
           v-model="form.email"
         />
@@ -48,11 +57,16 @@ function verifyToken() {
         <TextInput
           id="token"
           type="text"
+          :placeholder="form.email
+          ? `Enter the token sent to ${form.email}`
+          : 'Enter the token you received'
+          "
           class="mt-1 block w-full"
           v-model="form.token"
         />
 
         <InputError class="mt-2" :message="form.errors.token"/>
+        <InputError class="mt-2" :message="form.errors.error"/>
       </div>
 
       <div class="mt-4 flex items-center justify-end">

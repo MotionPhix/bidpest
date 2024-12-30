@@ -14,6 +14,7 @@ return new class extends Migration {
       $table->id();
       $table->foreignId('user_id')->constrained()->onDelete('cascade');
       $table->string('email');
+      $table->boolean('remember')->default(false);
       $table->string('token')->unique();
       $table->timestamp('expires_at');
       $table->integer('attempts_count')->default(0);

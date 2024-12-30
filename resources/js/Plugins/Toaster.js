@@ -1,3 +1,7 @@
+function createToast(param) {
+  return undefined;
+}
+
 const toast = createToast({
   position: 'top-right',
   timeout: 3000,

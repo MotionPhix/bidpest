@@ -10,23 +10,40 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Socialite\Facades\Socialite;
 
 Route::middleware('guest')->group(function () {
 
   Route::get(
     '/auth/{provider}/redirect',
-    [\App\Http\Controllers\Social\ProviderController::class, 'redirectToProvider']
+    function (\Illuminate\Http\Request $request) {
+
+      $providers = ['google', 'facebook'];
+
+      if (!in_array($request->provider, $providers)) {
+        return back()->withErrors([
+          'error' => 'Invalid authentication provider'
+        ]);
+      }
+
+      return Socialite::driver($request->provider)->redirect();
+    }
   )->name('socialite.redirect');
 
   Route::get(
-    '/auth/{provider}/callback',
-    [\App\Http\Controllers\Social\ProviderController::class, 'handleProviderCallback']
-  )->name('socialite.callback');
+    '/auth/google/callback',
+    [\App\Http\Controllers\Social\ProviderController::class, 'handleGoogleCallback']
+  );
+
+  Route::get(
+    '/auth/facebook/callback',
+    [\App\Http\Controllers\Social\ProviderController::class, 'handleFacebookCallback']
+  );
 
   Route::get(
     '/auth/login',
     [\App\Http\Controllers\Auth\PasswordlessLoginController::class, 'create']
-  )->name('auth.get.credentials');
+  )->name('login');
 
   Route::post(
     '/auth/login',
@@ -34,7 +51,7 @@ Route::middleware('guest')->group(function () {
   )->name('auth.log.user');
 
   Route::get(
-    '/auth/verify-token',
+    '/auth/verify/{user:uuid}',
     [\App\Http\Controllers\Auth\PasswordlessLoginController::class, 'get_token']
   )->name('auth.get.token');
 

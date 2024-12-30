@@ -258,8 +258,6 @@ import {
 // Shadcn Components
 import {Button} from '@/Components/ui/button'
 import {Input} from '@/Components/ui/input'
-
-```vue
 import { Label } from '@/Components/ui/label'
 import { Textarea } from '@/Components/ui/textarea'
 import { Popover, PopoverTrigger, PopoverContent } from '@/Components/ui/popover'

@@ -9,6 +9,7 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -22,37 +23,50 @@ class PasswordlessLoginController extends Controller
     return Inertia::render('Auth/Login');
   }
 
-  public function get_token()
+  public function get_token(User $user)
   {
+    if (! $user->uuid) {
+      return back()->withErrors([
+        'error' => 'We could not attribute your authenticity'
+      ]);
+    }
+
     return Inertia::render('Auth/VerifyToken');
   }
 
   public function login(Request $request)
   {
     $request->validate([
-      'email' => 'required|email'
+      'email' => 'required|email',
+      'remember' => 'required'
     ]);
 
-    $token = PasswordlessToken::createForEmail($request->email);
+    $token = PasswordlessToken::createForEmail($request->email, $request->remember);
 
     if (!$token) {
       return back()->withErrors([
-        'error' => 'No account found with this email. Please login via Social Authentication.',
-        'suggestSocialLogin' => true
+        'error' => 'No matching account found with this email.',
+      ]);
+    } elseif ($token === 'attempts') {
+      return back()->withErrors([
+        'error' => 'Too many attempts made. Please try again later'
       ]);
     }
 
     try {
 
-      $this->sendVerificationEmail($token->user, $token->token);
+      $this->sendTokenEmail($token->user, $token->token);
 
-      return Inertia::render('Auth/VerifyToken', [
-        'message' => 'A verification token was sent to your email. Retrieve it and insert the characters in the box below',
-      ]);
+      return redirect(
+        route(
+          'auth.get.token',
+          ['user' => $token->user->uuid]
+        )
+      );
 
     } catch (\Exception $e) {
 
-      \Log::error('Passwordless Login Error: ' . $e->getMessage());
+      Log::error('Passwordless Login Error: ' . $e->getMessage());
 
       return back()->withErrors([
         'error' => 'Unable to send login token. Please try again.'
@@ -66,23 +80,32 @@ class PasswordlessLoginController extends Controller
     $request->validate([
       'token' => 'required|string',
       'email' => 'required|email'
+    ], [
+      'token.required' => 'Enter the token you received from your email',
+      'email.email' => 'Enter a valid email address',
+      'email.required' => 'Enter your email address'
     ]);
 
     try {
 
       $token = PasswordlessToken::verifyToken($request->email, $request->token);
 
-      if (!$token) {
+      if (is_null($token)) {
+
+        $this->incrementAttempts($token->email);
+
         return back()->withErrors([
           'token' => 'Invalid or expired token',
-          'email' => $request->email
         ]);
+
       }
 
       $user = User::where('email', $request->email)->whereNotNull('provider')->first();
 
       if (!$user) {
-        return Inertia::render('Auth/PasswordlessLogin', ['error' => 'User account not found', 'suggestSocialLogin' => true])->withStatus(404);
+        return back()->withErrors([
+          'error' => 'User account not found'
+        ]);
       }
 
       $token->delete();
@@ -91,7 +114,7 @@ class PasswordlessLoginController extends Controller
 
       $this->ensureIsNotRateLimited();
 
-      if (! Auth::attempt($user->only('email'), $token->boolean('remember'))) {
+      if (!Auth::attempt($user->only('email'), $token->boolean('remember'))) {
 
         RateLimiter::hit($this->throttleKey());
 
@@ -109,10 +132,10 @@ class PasswordlessLoginController extends Controller
 
     } catch (\Exception $e) {
 
-      \Log::error('Token Verification Error: ' . $e->getMessage());
+      Log::error('Token Verification Error: ' . $e->getMessage());
 
       return back()->withErrors([
-        'error' => 'Authentication failed. Please try again.'
+        'error' => 'Invalid or expired token.'
       ]);
 
     }
@@ -129,10 +152,12 @@ class PasswordlessLoginController extends Controller
 
     $request->session()->regenerateToken();
 
+    Inertia::clearHistory();
+
     return redirect('/');
   }
 
-  protected function sendVerificationEmail(User $user, string $token)
+  protected function sendTokenEmail(User $user, string $token)
   {
     Mail::send(
       'emails.send-token',
@@ -140,18 +165,23 @@ class PasswordlessLoginController extends Controller
         'name' => $user->name, 'token' => $token,
         'expires' => now()->addMinutes(10)->diffForHumans()
       ], function ($message) use ($user) {
-      $message->to($user->email)->subject('Your Passwordless Login Token');
+      $message->to($user->email)->subject('Your OTP Token');
     });
   }
 
-  /**
-   * Ensure the login request is not rate limited.
-   *
-   * @throws \Illuminate\Validation\ValidationException
-   */
+  protected function incrementAttempts($email)
+  {
+    $latestToken = PasswordlessToken::where('email', $email)
+      ->orderBy('created_at', 'desc')->first();
+
+    if ($latestToken) {
+      $latestToken->incrementAttempts();
+    }
+  }
+
   public function ensureIsNotRateLimited(): void
   {
-    if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+    if (!RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
       return;
     }
 
@@ -172,6 +202,6 @@ class PasswordlessLoginController extends Controller
    */
   public function throttleKey(): string
   {
-    return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+    return Str::transliterate(Str::lower($this->string('email')) . '|' . $this->ip());
   }
 }

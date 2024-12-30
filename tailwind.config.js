@@ -10,7 +10,7 @@ export default {
     './node_modules/@inertiaui/modal-vue/src/**/*.{js,vue}',
     './storage/framework/views/*.php',
     './resources/views/**/*.blade.php',
-    './resources/js/**/*.{ts,tsx,vue}',
+    './resources/js/**/*.{js,ts,tsx,vue}',
   ],
 
   theme: {

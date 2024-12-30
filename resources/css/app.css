@@ -70,7 +70,33 @@
 
 @layer components {
   .btn {
-    @apply dark:text-muted-foreground bg-muted-foreground dark:bg-muted text-muted
+    @apply inline-flex items-center gap-x-2 font-medium rounded-lg border border-transparent focus:outline-none disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* Sizes */
+  .btn-sm {
+    @apply py-2 px-3 text-sm;
+  }
+
+  .btn-md {
+    @apply py-3 px-4 text-base;
+  }
+
+  .btn-lg {
+    @apply p-4 sm:p-5 text-lg;
+  }
+
+  /* Colors */
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-600 dark:focus:bg-blue-600;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-600 text-white hover:bg-gray-700 focus:bg-gray-700 dark:bg-gray-500 dark:text-white dark:hover:bg-gray-600 dark:focus:bg-gray-600;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:bg-red-700 dark:bg-red-500 dark:text-white dark:hover:bg-red-600 dark:focus:bg-red-600;
   }
 }
 
@@ -80,5 +106,13 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  p {
+    @apply leading-7 [&:not(:first-child)]:mt-6
+  }
+
+  ul {
+    @apply my-6 ml-6 list-disc [&>li]:mt-2
   }
 }

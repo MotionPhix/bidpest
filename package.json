@@ -16,6 +16,7 @@
         "autoprefixer": "^10.4.12",
         "axios": "^1.7.4",
         "concurrently": "^9.0.1",
+        "filepond": "^4.32.6",
         "gsap": "^3.12.5",
         "laravel-vite-plugin": "^1.0",
         "pinia": "^2.3.0",
@@ -24,6 +25,7 @@
         "tailwindcss": "^3.2.1",
         "vite": "^6.0",
         "vue": "^3.4.0",
+        "vue-filepond": "^7.0.4",
         "vue-toastification": "^2.0.0-rc.5"
     },
     "dependencies": {

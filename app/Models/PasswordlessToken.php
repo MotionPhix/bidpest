@@ -12,6 +12,7 @@ class PasswordlessToken extends Model
     'user_id',
     'email',
     'token',
+    'remember',
     'expires_at',
     'attempts_count'
   ];
@@ -25,7 +26,7 @@ class PasswordlessToken extends Model
     return $this->belongsTo(User::class);
   }
 
-  public static function createForEmail($email)
+  public static function createForEmail($email, $remember)
   {
     $user = User::where('email', $email)->whereNotNull('provider')->first();
 
@@ -33,11 +34,16 @@ class PasswordlessToken extends Model
       return null;
     }
 
+    if (!self::canRequestNewToken($user->id)) {
+      return 'attempts';
+    }
+
     $token = Str::random(6);
 
     return self::create([
       'user_id' => $user->id,
       'email' => $user->email,
+      'remember' => $remember,
       'token' => $token,
       'expires_at' => now()->addMinutes(10),
     ]);
@@ -56,10 +62,22 @@ class PasswordlessToken extends Model
     return $this->expires_at->isFuture();
   }
 
-  public function canRequestNewToken()
+  public static function canRequestNewToken(int $userId)
   {
     // Limit token requests to prevent abuse
-    return $this->attempts_count < 3 &&
-      $this->created_at->diffInMinutes(now()) >= 1;
+    $latestToken = self::where('user_id', $userId)
+      ->orderBy('created_at', 'desc')->first();
+
+    if (!$latestToken) {
+      return true;
+    }
+
+    return $latestToken->attempts_count < 3
+      && $latestToken->created_at->diffInMinutes(now()) >= 1;
+  }
+
+  public function incrementAttempts()
+  {
+    $this->increment('attempts_count');
   }
 }

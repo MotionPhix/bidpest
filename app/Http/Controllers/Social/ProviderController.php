@@ -6,43 +6,65 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Laravel\Socialite\Facades\Socialite;
 
 class ProviderController extends Controller
 {
-  protected $providers = ['google', 'facebook'];
-
-  public function redirectToProvider($provider)
+  public function handleGoogleCallback()
   {
-    if (!in_array($provider, $this->providers)) {
-      return Inertia::render('Auth/Login', [
-        'error' => 'Invalid authentication provider'
-      ])->withStatus(400);
-    }
+    dd('We are here');
 
-    return Socialite::driver($provider)->redirect();
-  }
-
-  public function handleProviderCallback($provider)
-  {
     try {
-      $socialiteUser = Socialite::driver($provider)->user();
-      $user = $this->findOrCreateUser($socialiteUser, $provider);
+
+      $socialiteUser = Socialite::driver('google')->user();
+      $user = $this->findOrCreateUser($socialiteUser, 'google');
 
       // Log in the user
       Auth::login($user, true);
 
-      // Redirect to dashboard or intended page
-      return Inertia::location(route('dashboard'));
+      return redirect(route('dashboard'));
+
     } catch (\Exception $e) {
+
       // Log the error
-      \Log::error('Socialite Authentication Error: ' . $e->getMessage());
+      Log::error(
+        'Socialite Authentication Error: ' . $e->getMessage()
+      );
 
       // Redirect back with error
-      return Inertia::render('Auth/Login', [
+      return back()->withErrors([
         'error' => 'Authentication failed. Please try again.'
       ]);
+
+    }
+  }
+
+  public function handleFacebookCallback()
+  {
+    try {
+
+      $socialiteUser = Socialite::driver('facebook')->stateless()->user();
+      $user = $this->findOrCreateUser($socialiteUser, 'facebook');
+
+      // Log in the user
+      Auth::login($user, true);
+
+      return redirect(route('dashboard'));
+
+    } catch (\Exception $e) {
+
+      // Log the error
+      Log::error(
+        'Socialite Authentication Error: ' . $e->getMessage()
+      );
+
+      // Redirect back with error
+      return back()->withErrors([
+        'error' => 'Authentication failed. Please try again.'
+      ]);
+
     }
   }
 
